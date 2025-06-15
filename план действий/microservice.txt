@@ -1,0 +1,289 @@
+social-network-microservices/
+│
+├── user-service/                       # Микросервис управления пользователями
+│   ├── src/
+│   │   ├── controllers/               # Контроллеры для обработки HTTP-запросов
+│   │   │   ├── authController.js      # Логика регистрации, входа, сброса пароля
+│   │   │   ├── userController.js      # Логика управления профилем пользователя
+│   │   │   └── sessionController.js   # Управление сессиями
+│   │   ├── models/                    # Модели Sequelize для PostgreSQL
+│   │   │   ├── User.js               # Модель для таблицы Users
+│   │   │   ├── AccountStatus.js      # Модель для таблицы AccountStatuses
+│   │   │   ├── Role.js               # Модель для таблицы Roles
+│   │   │   ├── Session.js            # Модель для таблицы Sessions
+│   │   │   ├── Follow.js             # Модель для таблицы Follows
+│   │   │   └── Block.js              # Модель для таблицы Blocks
+│   │   ├── routes/                    # Маршруты API
+│   │   │   ├── authRoutes.js          # Маршруты для аутентификации
+│   │   │   ├── userRoutes.js         # Маршруты для управления профилем
+│   │   │   └── sessionRoutes.js      # Маршруты для управления сессиями
+│   │   ├── services/                  # Бизнес-логика
+│   │   │   ├── authService.js         # Логика аутентификации (bcrypt, JWT)
+│   │   │   ├── userService.js         # Логика работы с пользователями
+│   │   │   ├── sessionService.js      # Логика работы с сессиями
+│   │   │   └── kafkaProducer.js       # Отправка событий в Kafka
+│   │   ├── middlewares/               # Промежуточные слои
+│   │   │   ├── authMiddleware.js      # Проверка JWT-токенов
+│   │   │   ├── validateRequest.js     # Валидация входящих запросов
+│   │   │   └── errorHandler.js        # Обработка ошибок
+│   │   ├── utils/                     # Утилиты
+│   │   │   ├── redisClient.js         # Подключение и работа с Redis
+│   │   │   └── logger.js             # Логирование
+│   │   └── index.js                   # Точка входа (запуск Express.js)
+│   ├── config/
+│   │   ├── database.js                # Настройки подключения к PostgreSQL
+│   │   ├── kafka.js                   # Настройки подключения к Kafka
+│   │   ├── redis.js                   # Настройки подключения к Redis
+│   │   └── environment.js             # Общие настройки окружения
+│   ├── migrations/                    # Миграции для Sequelize
+│   │   ├── 2025061201-create-users.js
+│   │   ├── 2025061202-create-account-statuses.js
+│   │   ├── 2025061203-create-roles.js
+│   │   ├── 2025061204-create-sessions.js
+│   │   ├── 2025061205-create-follows.js
+│   │   └── 2025061206-create-blocks.js
+│   ├── seeders/                       # Сиды для начальных данных
+│   │   ├── 2025061201-seed-account-statuses.js
+│   │   └── 2025061202-seed-roles.js
+│   ├── tests/                         # Тесты
+│   │   ├── unit/                      # Юнит-тесты
+│   │   │   ├── authService.test.js
+│   │   │   └── userService.test.js
+│   │   └── integration/               # Интеграционные тесты
+│   │       └── authRoutes.test.js
+│   ├── .env                           # Переменные окружения
+│   ├── .env.example                   # Пример переменных окружения
+│   ├── Dockerfile                     # Контейнеризация сервиса
+│   ├── package.json                   # Зависимости и скрипты
+│   └── README.md                      # Документация сервиса
+│
+├── post-service/                      # Микросервис постов
+│   ├── src/
+│   │   ├── controllers/
+│   │   │   ├── postController.js      # Логика создания/получения постов
+│   │   ├── models/
+│   │   │   ├── Post.js               # Модель для таблицы Posts
+│   │   │   ├── ContentType.js        # Модель для таблицы ContentTypes
+│   │   │   ├── Visibility.js         # Модель для таблицы Visibilities
+│   │   │   ├── Tag.js               # Модель для таблицы Tags
+│   │   │   ├── PostTag.js           # Модель для таблицы PostTags
+│   │   │   └── PostView.js          # Модель для таблицы PostViews
+│   │   ├── routes/
+│   │   │   ├── postRoutes.js         # Маршруты для постов
+│   │   ├── services/
+│   │   │   ├── postService.js        # Логика работы с постами
+│   │   │   └── kafkaProducer.js      # Отправка событий в Kafka
+│   │   ├── middlewares/
+│   │   │   ├── authMiddleware.js     # Проверка JWT-токенов
+│   │   │   ├── validateRequest.js    # Валидация запросов
+│   │   │   └── errorHandler.js       # Обработка ошибок
+│   │   ├── utils/
+│   │   │   ├── redisClient.js        # Подключение к Redis
+│   │   │   └── logger.js            # Логирование
+│   │   └── index.js                  # Точка входа
+│   ├── config/
+│   │   ├── database.js
+│   │   ├── kafka.js
+│   │   ├── redis.js
+│   │   └── environment.js
+│   ├── migrations/
+│   │   ├── 2025061207-create-posts.js
+│   │   ├── 2025061208-create-content-types.js
+│   │   ├── 2025061209-create-visibilities.js
+│   │   ├── 2025061210-create-tags.js
+│   │   ├── 2025061211-create-post-tags.js
+│   │   └── 2025061212-create-post-views.js
+│   ├── seeders/
+│   │   ├── 2025061203-seed-content-types.js
+│   │   └── 2025061204-seed-visibilities.js
+│   ├── tests/
+│   │   ├── unit/
+│   │   │   └── postService.test.js
+│   │   └── integration/
+│   │       └── postRoutes.test.js
+│   ├── .env
+│   ├── .env.example
+│   ├── Dockerfile
+│   ├── package.json
+│   └── README.md
+│
+├── comment-service/                   # Микросервис комментариев
+│   ├── src/
+│   │   ├── controllers/
+│   │   │   ├── commentController.js  # Логика работы с комментариями
+│   │   ├── models/
+│   │   │   ├── Comment.js           # Модель для таблицы Comments
+│   │   ├── routes/
+│   │   │   ├── commentRoutes.js     # Маршруты для комментариев
+│   │   ├── services/
+│   │   │   ├── commentService.js    # Логика работы с комментариями
+│   │   │   └── kafkaProducer.js     # Отправка событий в Kafka
+│   │   ├── middlewares/
+│   │   │   ├── authMiddleware.js
+│   │   │   ├── validateRequest.js
+│   │   │   └── errorHandler.js
+│   │   ├── utils/
+│   │   │   ├── redisClient.js
+│   │   │   └── logger.js
+│   │   └── index.js
+│   ├── config/
+│   │   ├── database.js
+│   │   ├── kafka.js
+│   │   ├── redis.js
+│   │   └── environment.js
+│   ├── migrations/
+│   │   ├── 2025061213-create-comments.js
+│   ├── seeders/
+│   ├── tests/
+│   │   ├── unit/
+│   │   │   └── commentService.test.js
+│   │   └── integration/
+│   │       └── commentRoutes.test.js
+│   ├── .env
+│   ├── .env.example
+│   ├── Dockerfile
+│   ├── package.json
+│   └── README.md
+│
+├── like-service/                      # Микросервис лайков
+│   ├── src/
+│   │   ├── controllers/
+│   │   │   ├── likeController.js     # Логика работы с лайками
+│   │   ├── models/
+│   │   │   ├── Like.js              # Модель для таблицы Likes
+│   │   ├── routes/
+│   │   │   ├── likeRoutes.js        # Маршруты для лайков
+│   │   ├── services/
+│   │   │   ├── likeService.js       # Логика работы с лайками
+│   │   │   └── kafkaProducer.js     # Отправка событий в Kafka
+│   │   ├── middlewares/
+│   │   │   ├── authMiddleware.js
+│   │   │   ├── validateRequest.js
+│   │   │   └── errorHandler.js
+│   │   ├── utils/
+│   │   │   ├── redisClient.js
+│   │   │   └── logger.js
+│   │   └── index.js
+│   ├── config/
+│   │   ├── database.js
+│   │   ├── kafka.js
+│   │   ├── redis.js
+│   │   └── environment.js
+│   ├── migrations/
+│   │   ├── 2025061214-create-likes.js
+│   ├── seeders/
+│   ├── tests/
+│   │   ├── unit/
+│   │   │   └── likeService.test.js
+│   │   └── integration/
+│   │       └── likeRoutes.test.js
+│   ├── .env
+│   ├── .env.example
+│   ├── Dockerfile
+│   ├── package.json
+│   └── README.md
+│
+├── message-service/                   # Микросервис сообщений
+│   ├── src/
+│   │   ├── controllers/
+│   │   │   ├── messageController.js  # Логика работы с сообщениями
+│   │   │   ├── conversationController.js # Логика работы с беседами
+│   │   ├── models/
+│   │   │   ├── Message.js           # Модель для таблицы Messages
+│   │   │   ├── Conversation.js      # Модель для таблицы Conversations
+│   │   │   ├── ConversationParticipant.js # Модель для таблицы ConversationParticipants
+│   │   │   ├── MediaType.js         # Модель для таблицы MediaTypes
+│   │   ├── routes/
+│   │   │   ├── messageRoutes.js     # Маршруты для сообщений
+│   │   │   ├── conversationRoutes.js # Маршруты для бесед
+│   │   ├── services/
+│   │   │   ├── messageService.js    # Логика работы с сообщениями
+│   │   │   ├── conversationService.js # Логика работы с беседами
+│   │   │   ├── websocketService.js  # Логика WebSocket для real-time чатов
+│   │   │   └── kafkaProducer.js     # Отправка событий в Kafka
+│   │   ├── middlewares/
+│   │   │   ├── authMiddleware.js
+│   │   │   ├── validateRequest.js
+│   │   │   └── errorHandler.js
+│   │   ├── utils/
+│   │   │   ├── redisClient.js
+│   │   │   └── logger.js
+│   │   └── index.js
+│   ├── config/
+│   │   ├── database.js
+│   │   ├── kafka.js
+│   │   ├── redis.js
+│   │   ├── websocket.js             # Настройки WebSocket
+│   │   └── environment.js
+│   ├── migrations/
+│   │   ├── 2025061215-create-messages.js
+│   │   ├── 2025061216-create-conversations.js
+│   │   ├── 2025061217-create-conversation-participants.js
+│   │   ├── 2025061218-create-media-types.js
+│   ├── seeders/
+│   │   ├── 2025061205-seed-media-types.js
+│   ├── tests/
+│   │   ├── unit/
+│   │   │   ├── messageService.test.js
+│   │   │   └── conversationService.test.js
+│   │   └── integration/
+│   │       ├── messageRoutes.test.js
+│   │       └── conversationRoutes.test.js
+│   ├── .env
+│   ├── .env.example
+│   ├── Dockerfile
+│   ├── package.json
+│   └── README.md
+│
+├── notification-service/              # Микросервис уведомлений
+│   ├── src/
+│   │   ├── controllers/
+│   │   │   ├── notificationController.js # Логика работы с уведомлениями
+│   │   ├── models/
+│   │   │   ├── Notification.js      # Модель для таблицы Notifications
+│   │   │   ├── NotificationType.js  # Модель для таблицы NotificationTypes
+│   │   │   ├── NotificationDetail.js # Модель для таблицы NotificationDetails
+│   │   ├── routes/
+│   │   │   ├── notificationRoutes.js # Мар doet-service/              # Микросервис аудита
+│   ├── src/
+│   │   ├── controllers/
+│   │   │   ├── auditController.js   # Логика работы с логами аудита
+│   │   ├── models/
+│   │   │   ├── AuditLog.js          # Модель для таблицы AuditLogs
+│   │   │   ├── AuditLogAction.js    # Модель для таблицы AuditLogActions
+│   │   ├── routes/
+│   │   │   ├── auditRoutes.js       # Маршруты для логов аудита
+│   │   ├── services/
+│   │   │   ├── auditService.js      # Логика работы с логами
+│   │   │   └── kafkaConsumer.js     # Получение событий из Kafka
+│   │   ├── middlewares/
+│   │   │   ├── authMiddleware.js
+│   │   │   ├── validateRequest.js
+│   │   │   └── errorHandler.js
+│   │   ├── utils/
+│   │   │   ├── redisClient.js
+│   │   │   └── logger.js
+│   │   └── index.js
+│   ├── config/
+│   │   ├── database.js
+│   │   ├── kafka.js
+│   │   ├── redis.js
+│   │   └── environment.js
+│   ├── migrations/
+│   │   ├── 2025061221-create-audit-logs.js
+│   │   ├── 2025061222-create-audit-log-actions.js
+│   ├── seeders/
+│   │   ├── 2025061207-seed-audit-log-actions.js
+│   ├── tests/
+│   │   ├── unit/
+│   │   │   └── auditService.test.js
+│   │   └── integration/
+│   │       └── auditRoutes.test.js
+│   ├── .env
+│   ├── .env.example
+│   ├── Dockerfile
+│   ├── package.json
+│   └── README.md
+│
+├── docker-compose.yml                 # Контейнеризация всех сервисов
+└── README.md                         # Общая документация проекта

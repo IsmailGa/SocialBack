@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ER-диаграмма социальной сети с отношениями</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #1f2937;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        tr:hover {
+            background-color: #f3f4f6;
+        }
+        @media (max-width: 640px) {
+            table, thead, tbody, th, td, tr {
+                display: block;
+            }
+            thead {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+            tr {
+                margin-bottom: 1rem;
+                border: 1px solid #e5e7eb;
+            }
+            td {
+                border: none;
+                position: relative;
+                padding-left: 50%;
+            }
+            td:before {
+                content: attr(data-label);
+                position: absolute;
+                left: 12px;
+                width: 45%;
+                font-weight: bold;
+            }
+        }
+    </style>
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6 max-w-7xl">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">ER-диаграмма социальной сети с отношениями</h1>
+        <p class="text-gray-600 mb-8">Этот документ представляет структуру базы данных социальной сети с визуализацией связей между таблицами. Диаграмма создана с использованием Mermaid.js и показывает отношения один-к-одному, один-ко-многим и многие-ко-многим. Ниже приведены описания таблиц, их полей и связей.</p>
+
+        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Диаграмма связей</h2>
+        <div class="mermaid">
+            erDiagram
+                Users ||--o{ Sessions : "user_id"
+                Users ||--o{ Posts : "author_id"
+                Users ||--o{ Comments : "author_id"
+                Users ||--o{ Likes : "user_id"
+                Users ||--o{ Messages : "sender_id"
+                Users ||--o{ ConversationParticipants : "user_id"
+                Users ||--o{ Follows : "follower_id"
+                Users ||--o{ Follows : "followee_id"
+                Users ||--o{ Blocks : "blocker_id"
+                Users ||--o{ Blocks : "blocked_id"
+                Users ||--o{ Notifications : "user_id"
+                Users ||--o{ Notifications : "from_user_id"
+                Users ||--o{ PostViews : "user_id"
+                Users ||--o{ AuditLogs : "user_id"
+                Users }|--o{ AccountStatuses : "account_status_id"
+                Users }|--o{ Roles : "role_id"
+
+                Posts ||--o{ Comments : "post_id"
+                Posts ||--o{ Likes : "post_id"
+                Posts ||--o{ Notifications : "post_id"
+                Posts ||--o{ PostViews : "post_id"
+                Posts }|--o{ ContentTypes : "content_type_id"
+                Posts }|--o{ Visibilities : "visibility_id"
+                Posts ||--o{ PostTags : "post_id"
+
+                Comments ||--o{ Comments : "parent_comment_id"
+
+                Conversations ||--o{ Messages : "conversation_id"
+                Conversations ||--o{ ConversationParticipants : "conversation_id"
+
+                Tags ||--o{ PostTags : "tag_id"
+
+                Notifications ||--o{ NotificationDetails : "notification_id"
+                Notifications }|--o{ NotificationTypes : "type_id"
+
+                AuditLogs }|--o{ AuditLogActions : "action_id"
+
+                AccountStatuses ||--o{ Users : "id"
+                ContentTypes ||--o{ Posts : "id"
+                Visibilities ||--o{ Posts : "id"
+                NotificationTypes ||--o{ Notifications : "id"
+                MediaTypes ||--o{ Messages : "media_type_id"
+                Roles ||--o{ Users : "id"
+                AuditLogActions ||--o{ AuditLogs : "id"
+        </div>
+
+        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Описание таблиц и связей</h2>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица Users</h3>
+            <p class="text-gray-600 mb-2">Хранит данные пользователей. Индексы: UNIQUE (username), UNIQUE (email), INDEX (role_id, last_login)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">Уникальный идентификатор пользователя</td></tr>
+                    <tr><td data-label="Поле">username</td><td data-label="Тип данных">VARCHAR(50)</td><td data-label="Описание">Уникальное имя пользователя</td></tr>
+                    <tr><td data-label="Поле">email</td><td data-label="Тип данных">VARCHAR(255)</td><td data-label="Описание">Email (уникальный)</td></tr>
+                    <tr><td data-label="Поле">password_hash</td><td data-label="Тип данных">VARCHAR(255)</td><td data-label="Описание">Хэш пароля</td></tr>
+                    <tr><td data-label="Поле">full_name</td><td data-label="Тип данных">VARCHAR(100)</td><td data-label="Описание">Полное имя</td></tr>
+                    <tr><td data-label="Поле">avatar_url</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">URL аватара</td></tr>
+                    <tr><td data-label="Поле">bio</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Биография</td></tr>
+                    <tr><td data-label="Поле">is_email_verified</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Подтвержден ли email</td></tr>
+                    <tr><td data-label="Поле">verification_token</td><td data-label="Тип данных">VARCHAR(255)</td><td data-label="Описание">Токен для подтверждения email</td></tr>
+                    <tr><td data-label="Поле">reset_password_token</td><td data-label="Тип данных">VARCHAR(255)</td><td data-label="Описание">Токен для сброса пароля</td></tr>
+                    <tr><td data-label="Поле">reset_password_expires</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Срок действия токена сброса пароля</td></tr>
+                    <tr><td data-label="Поле">account_status_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Статус аккаунта (AccountStatuses.id)</td></tr>
+                    <tr><td data-label="Поле">role_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Роль пользователя (Roles.id)</td></tr>
+                    <tr><td data-label="Поле">is_private</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Приватный профиль (true/false)</td></tr>
+                    <tr><td data-label="Поле">last_login</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата последнего входа</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                    <tr><td data-label="Поле">updated_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата последнего обновления</td></tr>
+                    <tr><td data-label="Поле">is_deleted</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Мягкое удаление</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>Users.account_status_id → AccountStatuses.id</b> (один-ко-многим): Каждый пользователь имеет один статус аккаунта.</li>
+                    <li><b>Users.role_id → Roles.id</b> (один-ко-многим): Каждый пользователь имеет одну роль.</li>
+                    <li><b>Users → Sessions.user_id</b> (один-ко-многим): Пользователь может иметь несколько сессий.</li>
+                    <li><b>Users → Posts.author_id</b> (один-ко-многим): Пользователь может создавать множество постов.</li>
+                    <li><b>Users → Comments.author_id</b> (один-ко-многим): Пользователь может оставлять множество комментариев.</li>
+                    <li><b>Users → Likes.user_id</b> (один-ко-многим): Пользователь может ставить множество лайков.</li>
+                    <li><b>Users → Messages.sender_id</b> (один-ко-многим): Пользователь может отправлять множество сообщений.</li>
+                    <li><b>Users → ConversationParticipants.user_id</b> (один-ко-многим): Пользователь может участвовать в множестве бесед.</li>
+                    <li><b>Users → Follows.follower_id, followee_id</b> (один-ко-многим): Пользователь может быть подписчиком или тем, на кого подписаны.</li>
+                    <li><b>Users → Blocks.blocker_id, blocked_id</b> (один-ко-многим): Пользователь может блокировать или быть заблокированным.</li>
+                    <li><b>Users → Notifications.user_id, from_user_id</b> (один-ко-многим): Пользователь может получать или инициировать уведомления.</li>
+                    <li><b>Users → PostViews.user_id</b> (один-ко-многим): Пользователь может просматривать множество постов.</li>
+                    <li><b>Users → AuditLogs.user_id</b> (один-ко-многим): Пользователь может выполнять множество действий, записанных в логах.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица Sessions</h3>
+            <p class="text-gray-600 mb-2">Хранит сессии пользователей. Индексы: INDEX (user_id), UNIQUE (refresh_token), INDEX (refresh_expires_at)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">Уникальный идентификатор сессии</td></tr>
+                    <tr><td data-label="Поле">user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Пользователь (Users.id)</td></tr>
+                    <tr><td data-label="Поле">refresh_token</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Refresh token для обновления сессии</td></tr>
+                    <tr><td data-label="Поле">refresh_expires_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Время истечения refresh token</td></tr>
+                    <tr><td data-label="Поле">device_info</td><td data-label="Тип данных">VARCHAR(255)</td><td data-label="Описание">Информация об устройстве</td></tr>
+                    <tr><td data-label="Поле">ip_address</td><td data-label="Тип данных">VARCHAR(45)</td><td data-label="Описание">IP-адрес пользователя</td></tr>
+                    <tr><td data-label="Поле">is_active</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Активна ли сессия</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания сессии</td></tr>
+                    <tr><td data-label="Поле">updated_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата последнего обновления</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>Sessions.user_id → Users.id</b> (один-ко-многим): Каждая сессия принадлежит одному пользователю.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица Posts</h3>
+            <p class="text-gray-600 mb-2">Хранит посты. Индексы: INDEX (author_id, created_at), INDEX (content_type_id), INDEX (visibility_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">Уникальный идентификатор поста</td></tr>
+                    <tr><td data-label="Поле">author_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Автор поста (Users.id)</td></tr>
+                    <tr><td data-label="Поле">content</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Текст поста</td></tr>
+                    <tr><td data-label="Поле">media_url</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Ссылка на медиа</td></tr>
+                    <tr><td data-label="Поле">content_type_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Тип контента (ContentTypes.id)</td></tr>
+                    <tr><td data-label="Поле">visibility_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Видимость (Visibilities.id)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата публикации</td></tr>
+                    <tr><td data-label="Поле">updated_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата последнего обновления</td></tr>
+                    <tr><td data-label="Поле">is_deleted</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Мягкое удаление</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>Posts.author_id → Users.id</b> (один-ко-многим): Пост принадлежит одному автору.</li>
+                    <li><b>Posts.content_type_id → ContentTypes.id</b> (один-ко-многим): Пост имеет один тип контента.</li>
+                    <li><b>Posts.visibility_id → Visibilities.id</b> (один-ко-многим): Пост имеет одну настройку видимости.</li>
+                    <li><b>Posts → Comments.post_id</b> (один-ко-многим): Пост может иметь множество комментариев.</li>
+                    <li><b>Posts → Likes.post_id</b> (один-ко-многим): Пост может иметь множество лайков.</li>
+                    <li><b>Posts → Notifications.post_id</b> (один-ко-многим): Пост может быть связан с уведомлениями.</li>
+                    <li><b>Posts → PostViews.post_id</b> (один-ко-многим): Пост может иметь множество просмотров.</li>
+                    <li><b>Posts → PostTags.post_id</b> (многие-ко-многим через PostTags): Пост может иметь множество тегов.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица Comments</h3>
+            <p class="text-gray-600 mb-2">Хранит комментарии. Индексы: INDEX (post_id, created_at), INDEX (author_id), INDEX (parent_comment_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">ID комментария</td></tr>
+                    <tr><td data-label="Поле">post_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID поста (Posts.id)</td></tr>
+                    <tr><td data-label="Поле">author_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Автор комментария (Users.id)</td></tr>
+                    <tr><td data-label="Поле">parent_comment_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID родительского комментария (Comments.id, nullable)</td></tr>
+                    <tr><td data-label="Поле">content</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Текст комментария</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                    <tr><td data-label="Поле">updated_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата обновления</td></tr>
+                    <tr><td data-label="Поле">is_deleted</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Мягкое удаление</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>Comments.post_id → Posts.id</b> (один-ко-многим): Комментарий принадлежит одному посту.</li>
+                    <li><b>Comments.author_id → Users.id</b> (один-ко-многим): Комментарий имеет одного автора.</li>
+                    <li><b>Comments.parent_comment_id → Comments.id</b> (один-ко-многим, рекурсивная): Комментарий может быть ответом на другой комментарий.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица Likes</h3>
+            <p class="text-gray-600 mb-2">Хранит лайки. Индексы: INDEX (user_id, post_id), INDEX (post_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Кто лайкнул (Users.id)</td></tr>
+                    <tr><td data-label="Поле">post_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Какой пост (Posts.id)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Когда был поставлен лайк</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>Likes.user_id → Users.id</b> (один-ко-многим): Лайк поставлен одним пользователем.</li>
+                    <li><b>Likes.post_id → Posts.id</b> (один-ко-многим): Лайк относится к одному посту.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица Messages</h3>
+            <p class="text-gray-600 mb-2">Хранит сообщения. Индексы: INDEX (conversation_id, created_at), INDEX (sender_id), INDEX (media_type_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">ID сообщения</td></tr>
+                    <tr><td data-label="Поле">conversation_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID беседы (Conversations.id)</td></tr>
+                    <tr><td data-label="Поле">sender_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Отправитель (Users.id)</td></tr>
+                    <tr><td data-label="Поле">content</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Текст сообщения</td></tr>
+                    <tr><td data-label="Поле">media_url</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Медиа (необязательно)</td></tr>
+                    <tr><td data-label="Поле">media_type_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Тип медиа (MediaTypes.id, nullable)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Время отправки</td></tr>
+                    <tr><td data-label="Поле">is_read</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Прочитано или нет</td></tr>
+                    <tr><td data-label="Поле">is_deleted</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Мягкое удаление</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>Messages.conversation_id → Conversations.id</b> (один-ко-многим): Сообщение принадлежит одной беседе.</li>
+                    <li><b>Messages.sender_id → Users.id</b> (один-ко-многим): Сообщение отправлено одним пользователем.</li>
+                    <li><b>Messages.media_type_id → MediaTypes.id</b> (один-ко-многим): Сообщение может иметь один тип медиа.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица Conversations</h3>
+            <p class="text-gray-600 mb-2">Хранит беседы. Индексы: INDEX (is_group, created_at)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">ID беседы</td></tr>
+                    <tr><td data-label="Поле">is_group</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Групповой чат (true/false)</td></tr>
+                    <tr><td data-label="Поле">title</td><td data-label="Тип данных">VARCHAR(100)</td><td data-label="Описание">Название группового чата (nullable)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                    <tr><td data-label="Поле">updated_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата последнего обновления</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>Conversations → Messages.conversation_id</b> (один-ко-многим): Беседа может содержать множество сообщений.</li>
+                    <li><b>Conversations → ConversationParticipants.conversation_id</b> (один-ко-многим): Беседа может иметь множество участников.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица ConversationParticipants</h3>
+            <p class="text-gray-600 mb-2">Хранит участников бесед. Индексы: INDEX (conversation_id, user_id), INDEX (user_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">conversation_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID беседы (Conversations.id)</td></tr>
+                    <tr><td data-label="Поле">user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Участник (Users.id)</td></tr>
+                    <tr><td data-label="Поле">joined_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата присоединения</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>ConversationParticipants.conversation_id → Conversations.id</b> (один-ко-многим): Участник принадлежит одной беседе.</li>
+                    <li><b>ConversationParticipants.user_id → Users.id</b> (один-ко-многим): Участник — один пользователь.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица Follows</h3>
+            <p class="text-gray-600 mb-2">Хранит подписки. Индексы: INDEX (follower_id, followee_id), INDEX (followee_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">follower_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Подписчик (Users.id)</td></tr>
+                    <tr><td data-label="Поле">followee_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">На кого подписан (Users.id)</td></tr>
+                    <tr><td data-label="Поле">is_pending</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Запрос на подписку</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Когда произошла подписка</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>Follows.follower_id → Users.id</b> (один-ко-многим): Подписчик — один пользователь.</li>
+                    <li><b>Follows.followee_id → Users.id</b> (один-ко-многим): Тот, на кого подписаны, — один пользователь.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица Blocks</h3>
+            <p class="text-gray-600 mb-2">Хранит блокировки. Индексы: INDEX (blocker_id, blocked_id), INDEX (blocked_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">blocker_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Кто заблокировал (Users.id)</td></tr>
+                    <tr><td data-label="Поле">blocked_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Кого заблокировали (Users.id)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата блокировки</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>Blocks.blocker_id → Users.id</b> (один-ко-многим): Блокировщик — один пользователь.</li>
+                    <li><b>Blocks.blocked_id → Users.id</b> (один-ко-многим): Заблокированный — один пользователь.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица Notifications</h3>
+            <p class="text-gray-600 mb-2">Хранит уведомления. Индексы: INDEX (user_id, is_read, created_at), INDEX (from_user_id), INDEX (post_id), INDEX (type_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">ID уведомления</td></tr>
+                    <tr><td data-label="Поле">user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Кому принадлежит уведомление (Users.id)</td></tr>
+                    <tr><td data-label="Поле">type_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Тип уведомления (NotificationTypes.id)</td></tr>
+                    <tr><td data-label="Поле">from_user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">От кого (Users.id)</td></tr>
+                    <tr><td data-label="Поле">post_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Связан с постом (Posts.id, nullable)</td></tr>
+                    <tr><td data-label="Поле">message</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Текст уведомления</td></tr>
+                    <tr><td data-label="Поле">is_read</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Прочитано ли</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Время создания</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>Notifications.user_id → Users.id</b> (один-ко-многим): Уведомление принадлежит одному пользователю.</li>
+                    <li><b>Notifications.from_user_id → Users.id</b> (один-ко-многим): Уведомление инициировано одним пользователем.</li>
+                    <li><b>Notifications.post_id → Posts.id</b> (один-ко-многим): Уведомление может быть связано с одним постом.</li>
+                    <li><b>Notifications.type_id → NotificationTypes.id</b> (один-ко-многим): Уведомление имеет один тип.</li>
+                    <li><b>Notifications → NotificationDetails.notification_id</b> (один-ко-многим): Уведомление может иметь дополнительные параметры.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица NotificationTypes</h3>
+            <p class="text-gray-600 mb-2">Хранит типы уведомлений. Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID типа уведомления</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(20)</td><td data-label="Описание">Название типа (like, comment, follow, message)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>NotificationTypes → Notifications.type_id</b> (один-ко-многим): Тип уведомления используется в множестве уведомлений.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица NotificationDetails</h3>
+            <p class="text-gray-600 mb-2">Хранит дополнительные параметры уведомлений. Индексы: INDEX (notification_id, key)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">notification_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID уведомления (Notifications.id)</td></tr>
+                    <tr><td data-label="Поле">key</td><td data-label="Тип данных">VARCHAR(50)</td><td data-label="Описание">Ключ параметра (например, "count")</td></tr>
+                    <tr><td data-label="Поле">value</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Значение параметра</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>NotificationDetails.notification_id → Notifications.id</b> (один-ко-многим): Параметры принадлежат одному уведомлению.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица Tags</h3>
+            <p class="text-gray-600 mb-2">Хранит хэштеги. Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">ID тега</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(50)</td><td data-label="Описание">Название тега (уникальное)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>Tags → PostTags.tag_id</b> (многие-ко-многим через PostTags): Тег может быть связан с множеством постов.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица PostTags</h3>
+            <p class="text-gray-600 mb-2">Связывает посты и теги. Индексы: INDEX (post_id, tag_id), INDEX (tag_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">post_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID поста (Posts.id)</td></tr>
+                    <tr><td data-label="Поле">tag_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID тега (Tags.id)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата привязки</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>PostTags.post_id → Posts.id</b> (один-ко-многим): Связь относится к одному посту.</li>
+                    <li><b>PostTags.tag_id → Tags.id</b> (один-ко-многим): Связь относится к одному тегу.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица PostViews</h3>
+            <p class="text-gray-600 mb-2">Хранит просмотры постов. Индексы: INDEX (post_id, created_at), INDEX (user_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">post_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID поста (Posts.id)</td></tr>
+                    <tr><td data-label="Поле">user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID пользователя (Users.id, nullable для гостей)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата просмотра</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>PostViews.post_id → Posts.id</b> (один-ко-многим): Просмотр относится к одному посту.</li>
+                    <li><b>PostViews.user_id → Users.id</b> (один-ко-многим): Просмотр может быть связан с одним пользователем.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица ContentTypes</h3>
+            <p class="text-gray-600 mb-2">Хранит типы контента. Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID типа контента</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(20)</td><td data-label="Описание">Название типа (text, image, video, poll)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>ContentTypes → Posts.content_type_id</b> (один-ко-многим): Тип контента используется в множестве постов.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица Visibilities</h3>
+            <p class="text-gray-600 mb-2">Хранит настройки видимости. Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID видимости</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(20)</td><td data-label="Описание">Название видимости (public, followers, private)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>Visibilities → Posts.visibility_id</b> (один-ко-многим): Настройка видимости используется в множестве постов.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица AccountStatuses</h3>
+            <p class="text-gray-600 mb-2">Хранит статусы аккаунтов. Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID статуса аккаунта</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(20)</td><td data-label="Описание">Название статуса (active, banned, deleted)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>AccountStatuses → Users.account_status_id</b> (один-ко-многим): Статус аккаунта используется множеством пользователей.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица MediaTypes</h3>
+            <p class="text-gray-600 mb-2">Хранит типы медиа. Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID типа медиа</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(20)</td><td data-label="Описание">Название типа (image, video, document)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>MediaTypes → Messages.media_type_id</b> (один-ко-многим): Тип медиа используется в множестве сообщений.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица Roles</h3>
+            <p class="text-gray-600 mb-2">Хранит роли пользователей. Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID роли</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(50)</td><td data-label="Описание">Название роли (admin, moderator, user)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>Roles → Users.role_id</b> (один-ко-многим): Роль используется множеством пользователей.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица AuditLogs</h3>
+            <p class="text-gray-600 mb-2">Хранит логи действий. Индексы: INDEX (user_id, created_at), INDEX (action_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">ID записи лога</td></tr>
+                    <tr><td data-label="Поле">user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Пользователь (Users.id, nullable)</td></tr>
+                    <tr><td data-label="Поле">action_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Действие (AuditLogActions.id)</td></tr>
+                    <tr><td data-label="Поле">details</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Детали действия</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата действия</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>AuditLogs.user_id → Users.id</b> (один-ко-многим): Лог связан с одним пользователем.</li>
+                    <li><b>AuditLogs.action_id → AuditLogActions.id</b> (один-ко-многим): Лог имеет одно действие.</li>
+                </ul>
+            </p>
+        </section>
+
+        <section class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Таблица AuditLogActions</h3>
+            <p class="text-gray-600 mb-2">Хранит типы действий для логов. Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID действия</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(50)</td><td data-label="Описание">Название действия (login, post_delete, profile_update)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+            <p class="text-gray-600 mt-2">Связи:
+                <ul class="list-disc ml-6">
+                    <li><b>AuditLogActions → AuditLogs.action_id</b> (один-ко-многим): Действие используется в множестве логов.</li>
+                </ul>
+            </p>
+        </section>
+    </div>
+</body>
+</html>

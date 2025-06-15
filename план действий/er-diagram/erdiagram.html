@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Улучшенная ER-диаграмма для социальной сети</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #1f2937;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        tr:hover {
+            background-color: #f3f4f6;
+        }
+        @media (max-width: 640px) {
+            table, thead, tbody, th, td, tr {
+                display: block;
+            }
+            thead {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+            tr {
+                margin-bottom: 1rem;
+                border: 1px solid #e5e7eb;
+            }
+            td {
+                border: none;
+                position: relative;
+                padding-left: 50%;
+            }
+            td:before {
+                content: attr(data-label);
+                position: absolute;
+                left: 12px;
+                width: 45%;
+                font-weight: bold;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6 max-w-7xl">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Улучшенная ER-диаграмма для социальной сети</h1>
+        <p class="text-gray-600 mb-8">Данный документ описывает улучшенную структуру базы данных для социальной сети, включающую поддержку профилей пользователей, постов, комментариев, лайков, сообщений, групповых чатов, подписок, блокировок, уведомлений, хэштегов, аналитики просмотров, сессий, ролей и логов действий. Перечислимые значения вынесены в отдельные таблицы с INTEGER ключами. Поле data в Notifications заменено на message (TEXT). Добавлены таблицы для типов медиа, деталей уведомлений, ролей и логов действий с отдельной таблицей для действий.</p>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица Users</h2>
+            <p class="text-gray-600 mb-2">Индексы: UNIQUE (username), UNIQUE (email), INDEX (role_id, last_login)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">Уникальный идентификатор пользователя</td></tr>
+                    <tr><td data-label="Поле">username</td><td data-label="Тип данных">VARCHAR(50)</td><td data-label="Описание">Уникальное имя пользователя</td></tr>
+                    <tr><td data-label="Поле">email</td><td data-label="Тип данных">VARCHAR(255)</td><td data-label="Описание">Email (уникальный)</td></tr>
+                    <tr><td data-label="Поле">password_hash</td><td data-label="Тип данных">VARCHAR(255)</td><td data-label="Описание">Хэш пароля</td></tr>
+                    <tr><td data-label="Поле">full_name</td><td data-label="Тип данных">VARCHAR(100)</td><td data-label="Описание">Полное имя</td></tr>
+                    <tr><td data-label="Поле">avatar_url</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">URL аватара</td></tr>
+                    <tr><td data-label="Поле">bio</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Биография</td></tr>
+                    <tr><td data-label="Поле">is_email_verified</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Подтвержден ли email</td></tr>
+                    <tr><td data-label="Поле">verification_token</td><td data-label="Тип данных">VARCHAR(255)</td><td data-label="Описание">Токен для подтверждения email</td></tr>
+                    <tr><td data-label="Поле">reset_password_token</td><td data-label="Тип данных">VARCHAR(255)</td><td data-label="Описание">Токен для сброса пароля</td></tr>
+                    <tr><td data-label="Поле">reset_password_expires</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Срок действия токена сброса пароля</td></tr>
+                    <tr><td data-label="Поле">account_status_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Статус аккаунта (AccountStatuses.id)</td></tr>
+                    <tr><td data-label="Поле">role_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Роль пользователя (Roles.id)</td></tr>
+                    <tr><td data-label="Поле">is_private</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Приватный профиль (true/false)</td></tr>
+                    <tr><td data-label="Поле">last_login</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата последнего входа</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                    <tr><td data-label="Поле">updated_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата последнего обновления</td></tr>
+                    <tr><td data-label="Поле">is_deleted</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Мягкое удаление</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица AccountStatuses</h2>
+            <p class="text-gray-600 mb-2">Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID статуса аккаунта</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(20)</td><td data-label="Описание">Название статуса (active, banned, deleted)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица Roles</h2>
+            <p class="text-gray-600 mb-2">Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID роли</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(50)</td><td data-label="Описание">Название роли (admin, moderator, user)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица Sessions</h2>
+            <p class="text-gray-600 mb-2">Индексы: INDEX (user_id), UNIQUE (refresh_token), INDEX (refresh_expires_at)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">Уникальный идентификатор сессии</td></tr>
+                    <tr><td data-label="Поле">user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Пользователь (Users.id)</td></tr>
+                    <tr><td data-label="Поле">refresh_token</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Refresh token для обновления сессии</td></tr>
+                    <tr><td data-label="Поле">refresh_expires_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Время истечения refresh token</td></tr>
+                    <tr><td data-label="Поле">device_info</td><td data-label="Тип данных">VARCHAR(255)</td><td data-label="Описание">Информация об устройстве (например, браузер)</td></tr>
+                    <tr><td data-label="Поле">ip_address</td><td data-label="Тип данных">VARCHAR(45)</td><td data-label="Описание">IP-адрес пользователя (поддержка IPv6)</td></tr>
+                    <tr><td data-label="Поле">is_active</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Активна ли сессия (true/false)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания сессии</td></tr>
+                    <tr><td data-label="Поле">updated_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата последнего обновления</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица Posts</h2>
+            <p class="text-gray-600 mb-2">Индексы: INDEX (author_id, created_at), INDEX (content_type_id), INDEX (visibility_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">Уникальный идентификатор поста</td></tr>
+                    <tr><td data-label="Поле">author_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Автор поста (Users.id)</td></tr>
+                    <tr><td data-label="Поле">content</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Текст поста</td></tr>
+                    <tr><td data-label="Поле">media_url</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Ссылка на медиа (изображение/видео)</td></tr>
+                    <tr><td data-label="Поле">content_type_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Тип контента (ContentTypes.id)</td></tr>
+                    <tr><td data-label="Поле">visibility_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Видимость (Visibilities.id)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата публикации</td></tr>
+                    <tr><td data-label="Поле">updated_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата последнего обновления</td></tr>
+                    <tr><td data-label="Поле">is_deleted</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Мягкое удаление</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица ContentTypes</h2>
+            <p class="text-gray-600 mb-2">Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID типа контента</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(20)</td><td data-label="Описание">Название типа (text, image, video, poll)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица Visibilities</h2>
+            <p class="text-gray-600 mb-2">Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID видимости</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(20)</td><td data-label="Описание">Название видимости (public, followers, private)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица Comments</h2>
+            <p class="text-gray-600 mb-2">Индексы: INDEX (post_id, created_at), INDEX (author_id), INDEX (parent_comment_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">ID комментария</td></tr>
+                    <tr><td data-label="Поле">post_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID поста (Posts.id)</td></tr>
+                    <tr><td data-label="Поле">author_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Автор комментария (Users.id)</td></tr>
+                    <tr><td data-label="Поле">parent_comment_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID родительского комментария (Comments.id, nullable)</td></tr>
+                    <tr><td data-label="Поле">content</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Текст комментария</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                    <tr><td data-label="Поле">updated_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата обновления</td></tr>
+                    <tr><td data-label="Поле">is_deleted</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Мягкое удаление</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица Likes</h2>
+            <p class="text-gray-600 mb-2">Индексы: INDEX (user_id, post_id), INDEX (post_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Кто лайкнул (Users.id)</td></tr>
+                    <tr><td data-label="Поле">post_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Какой пост (Posts.id)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Когда был поставлен лайк</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица Messages</h2>
+            <p class="text-gray-600 mb-2">Индексы: INDEX (conversation_id, created_at), INDEX (sender_id), INDEX (media_type_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">ID сообщения</td></tr>
+                    <tr><td data-label="Поле">conversation_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID беседы (Conversations.id)</td></tr>
+                    <tr><td data-label="Поле">sender_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Отправитель (Users.id)</td></tr>
+                    <tr><td data-label="Поле">content</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Текст сообщения</td></tr>
+                    <tr><td data-label="Поле">media_url</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Медиа (необязательно)</td></tr>
+                    <tr><td data-label="Поле">media_type_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Тип медиа (MediaTypes.id, nullable)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Время отправки</td></tr>
+                    <tr><td data-label="Поле">is_read</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Прочитано или нет</td></tr>
+                    <tr><td data-label="Поле">is_deleted</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Мягкое удаление</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица MediaTypes</h2>
+            <p class="text-gray-600 mb-2">Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID типа медиа</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(20)</td><td data-label="Описание">Название типа (image, video, document)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица Conversations</h2>
+            <p class="text-gray-600 mb-2">Индексы: INDEX (is_group, created_at)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">ID беседы</td></tr>
+                    <tr><td data-label="Поле">is_group</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Групповой чат (true/false)</td></tr>
+                    <tr><td data-label="Поле">title</td><td data-label="Тип данных">VARCHAR(100)</td><td data-label="Описание">Название группового чата (nullable)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                    <tr><td data-label="Поле">updated_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата последнего обновления</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица ConversationParticipants</h2>
+            <p class="text-gray-600 mb-2">Индексы: INDEX (conversation_id, user_id), INDEX (user_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">conversation_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID беседы (Conversations.id)</td></tr>
+                    <tr><td data-label="Поле">user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Участник (Users.id)</td></tr>
+                    <tr><td data-label="Поле">joined_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата присоединения</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица Follows</h2>
+            <p class="text-gray-600 mb-2">Индексы: INDEX (follower_id, followee_id), INDEX (followee_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">follower_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Подписчик (Users.id)</td></tr>
+                    <tr><td data-label="Поле">followee_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">На кого подписан (Users.id)</td></tr>
+                    <tr><td data-label="Поле">is_pending</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Запрос на подписку (для приватных аккаунтов)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Когда произошла подписка</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица Blocks</h2>
+            <p class="text-gray-600 mb-2">Индексы: INDEX (blocker_id, blocked_id), INDEX (blocked_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">blocker_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Кто заблокировал (Users.id)</td></tr>
+                    <tr><td data-label="Поле">blocked_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Кого заблокировали (Users.id)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата блокировки</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица Notifications</h2>
+            <p class="text-gray-600 mb-2">Индексы: INDEX (user_id, is_read, created_at), INDEX (from_user_id), INDEX (post_id), INDEX (type_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">ID уведомления</td></tr>
+                    <tr><td data-label="Поле">user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Кому принадлежит уведомление (Users.id)</td></tr>
+                    <tr><td data-label="Поле">type_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Тип уведомления (NotificationTypes.id)</td></tr>
+                    <tr><td data-label="Поле">from_user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">От кого (Users.id)</td></tr>
+                    <tr><td data-label="Поле">post_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Связан ли с постом (Posts.id, nullable)</td></tr>
+                    <tr><td data-label="Поле">message</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Текст уведомления</td></tr>
+                    <tr><td data-label="Поле">is_read</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Прочитано ли</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Время создания</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица NotificationTypes</h2>
+            <p class="text-gray-600 mb-2">Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID типа уведомления</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(20)</td><td data-label="Описание">Название типа (like, comment, follow, message)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица NotificationDetails</h2>
+            <p class="text-gray-600 mb-2">Индексы: INDEX (notification_id, key)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">notification_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID уведомления (Notifications.id)</td></tr>
+                    <tr><td data-label="Поле">key</td><td data-label="Тип данных">VARCHAR(50)</td><td data-label="Описание">Ключ параметра (например, "count")</td></tr>
+                    <tr><td data-label="Поле">value</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Значение параметра</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица AuditLogs</h2>
+            <p class="text-gray-600 mb-2">Индексы: INDEX (user_id, created_at), INDEX (action_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">ID записи лога</td></tr>
+                    <tr><td data-label="Поле">user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Пользователь (Users.id, nullable)</td></tr>
+                    <tr><td data-label="Поле">action_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Действие (AuditLogActions.id)</td></tr>
+                    <tr><td data-label="Поле">details</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Детали действия</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата действия</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица AuditLogActions</h2>
+            <p class="text-gray-600 mb-2">Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID действия</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(50)</td><td data-label="Описание">Название действия (login, post_delete, profile_update)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица Tags</h2>
+            <p class="text-gray-600 mb-2">Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">ID тега</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(50)</td><td data-label="Описание">Название тега (уникальное)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица PostTags</h2>
+            <p class="text-gray-600 mb-2">Индексы: INDEX (post_id, tag_id), INDEX (tag_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">post_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID поста (Posts.id)</td></tr>
+                    <tr><td data-label="Поле">tag_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID тега (Tags.id)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата привязки</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица PostViews</h2>
+            <p class="text-gray-600 mb-2">Индексы: INDEX (post_id, created_at), INDEX (user_id)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">post_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID поста (Posts.id)</td></tr>
+                    <tr><td data-label="Поле">user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID пользователя (Users.id, nullable для гостей)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата просмотра</td></tr>
+                </tbody>
+            </table>
+        </section>
+    </div>
+</body>
+</html>
