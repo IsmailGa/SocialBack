@@ -1,24 +1,19 @@
 "use strict";
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
-const db = require("../../models");
-const User = db.User;
+const axios = require("../api/axios.js");
+const { Session } = require("../../models/index.js");
 
-const generateTokens = async (userId) => {
+const generateTokens = async (user) => {
   try {
-    if (!userId) {
-      throw new Error("Invalid user ID");
-    }
-
-    const userCheck = await User.findByPk(userId);
-    if (!userCheck) {
-      return { success: false, message: "User not found" };
+    if (!user) {
+      throw new Error("Not provided data");
     }
 
     const payload = {
-      id: userCheck.id,
-      email: userCheck.email,
-      roleId: userCheck.roleId,
+      id: user.id,
+      email: user.email,
+      roleId: user.role,
     };
     console.log(payload);
     const accessSecret = process.env.ACCESS_TOKEN_SECRET;
@@ -91,14 +86,14 @@ const refreshAccessToken = async (req, res) => {
     }
 
     const decoded = jwt.verify(refreshToken, refreshSecret);
-    const userCheck = await User.findByPk(decoded.id);
-    if (!userCheck) {
+    const userCheck = await axios.get(`/api/v1/users/${decoded.id}`);
+    if (!userCheck || !userCheck.data) {
       throw new Error("User not found");
     }
 
     const accessSecret = process.env.ACCESS_TOKEN_SECRET;
     const newAccessToken = jwt.sign(
-      { id: decoded.id, email: decoded.email },
+      { id: decoded.id, email: decoded.email, roleId: decoded.roleId },
       accessSecret,
       {
         expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
@@ -163,15 +158,15 @@ const validateRefreshToken = async (req, res, next) => {
 
     const refreshToken = cookies.refreshToken;
 
-    const user = await User.findOne({ where: { refreshToken } });
-    if (!user) {
+    const session = await Session.findOne({ where: { userId: req.user.id, refreshToken } });
+    if (!session) {
       return res.status(403).json({
         status: "error",
         message: "Invalid refresh token",
       });
     }
 
-    req.user = user;
+    req.userId = session.userId;
 
     next();
   } catch (error) {

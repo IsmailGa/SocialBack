@@ -22,14 +22,6 @@ Object.keys(db).forEach(modelName => {
 });
 
 // Определение связей
-db.AccountStatus.hasMany(db.User, { foreignKey: 'accountStatusId' });
-db.User.belongsTo(db.AccountStatus, { foreignKey: 'accountStatusId' });
-
-db.Role.hasMany(db.User, { foreignKey: 'roleId' });
-db.User.belongsTo(db.Role, { foreignKey: 'roleId' });
-
-db.User.hasMany(db.Session, { foreignKey: 'userId' });
-db.Session.belongsTo(db.User, { foreignKey: 'userId' });
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
