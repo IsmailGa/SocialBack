@@ -45,19 +45,19 @@ const sendVerificationEmail = async (email, username, verificationToken) => {
   }
 };
 
-const sendResetPassword = async (email, username, token) => {
-  if (!email || !username || !token) {
+const sendResetPassword = async (user, token) => {
+  if (!user.email || !user.username || !token) {
     throw new Error("Email, username, and verification token are required");
   }
 
-  const link = `${process.env.FRONTEND_URL}/reset?token=${token}&id=${user.id}`;
+  const link = `${process.env.FRONTEND_URL}/api/v1/auth/reset-password?token=${token}&id=${user.id}&password=${user.passwordHash}`;
 
   const mailOptions = {
     from: `"Socialka " <${process.env.EMAIL_USER}>`,
-    to: email,
+    to: user.email,
     subject: "Verify Your Email Address",
     html: `
-      <h2>Hello, ${username}!</h2>
+      <h2>Hello, ${user.username}!</h2>
       <a href="${link}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a>
       <p>If the button above doesn't work, copy and paste this link into your browser:</p>
       <p>Don't share this link with anyone else:</p>
@@ -69,10 +69,10 @@ const sendResetPassword = async (email, username, token) => {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log(`Reset password link sent to ${email}`);
+    console.log(`Reset password link sent to ${user.email}`);
   } catch (error) {
-    console.error(`Failed to send reset password link to ${email}:`, error);
-    throw new Error("Failed to reset password linkl");
+    console.error(`Failed to send reset password link to ${user.email}:`, error);
+    throw new Error("Failed to reset password link");
   }
 };
 

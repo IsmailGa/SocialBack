@@ -157,20 +157,43 @@ const validateRefreshToken = async (req, res, next) => {
     }
 
     const refreshToken = cookies.refreshToken;
+    const refreshSecret = process.env.REFRESH_TOKEN_SECRET;
+    if (!refreshSecret) {
+      throw new Error("REFRESH_TOKEN_SECRET is not defined");
+    }
 
-    const session = await Session.findOne({ where: { userId: req.user.id, refreshToken } });
+    // Verify the refresh token and extract the user ID
+    const decoded = jwt.verify(refreshToken, refreshSecret);
+    const userId = decoded.id;
+
+    // Check if the session exists and is active
+    const session = await Session.findOne({
+      where: { userId: userId, refreshToken, isActive: true },
+    });
     if (!session) {
       return res.status(403).json({
         status: "error",
-        message: "Invalid refresh token",
+        message: "Invalid or revoked refresh token",
       });
     }
 
-    req.userId = session.userId;
+    // Attach the user ID to the request for the next middleware
+    req.userId = userId;
 
     next();
   } catch (error) {
     console.error("Error validating refresh token:", error.message);
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        status: "error",
+        message: "Refresh token has expired",
+      });
+    } else if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid refresh token",
+      });
+    }
     return res.status(500).json({
       status: "error",
       message: "Internal server error",

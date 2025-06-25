@@ -10,6 +10,7 @@ const axios = require("../utils/api/axios");
 const { AppError } = require("../middleware/error.middleware");
 const logger = require("../utils/logger");
 
+// # REGISTER
 const register = async (req, res, next) => {
   const {
     username,
@@ -136,8 +137,11 @@ const register = async (req, res, next) => {
   }
 };
 
+// # LOGIN
 const login = async (req, res, next) => {
   const { email, password, lastLogin = new Date().toISOString() } = req.body;
+  const deviceInfo = req.headers["user-agent"] || "Unknown";
+  const ipAddress = req.ip || "Unknown";
 
   if (!email || !password) {
     logger.warn("Login attempt with missing credentials", {
@@ -191,17 +195,32 @@ const login = async (req, res, next) => {
       return next(new AppError(500, "Failed to generate tokens"));
     }
 
-    // 4. Set refresh token cookie
+    // 4. Calculate refresh token expiration (assuming 7 days from jwtGenerate)
+    const refreshExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    // 5. Store session in database
+    await Session.create({
+      userId: user.id,
+      refreshToken: tokens.refreshToken,
+      refreshExpiresAt,
+      deviceInfo,
+      ipAddress,
+      isActive: true,
+    });
+
+    // 6. Set refresh token cookie
     res.cookie("refreshToken", tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
-    logger.info("Attempting to change lastLogin");
 
+    // 7. Update last login
+    logger.info("Attempting to update lastLogin");
     await axios.patch(`/users/${user.id}`, { lastLogin: lastLogin });
 
-    // 5. Return user info and access token
+    // 8. Return user info and access token
     return res.status(200).json({
       status: "success",
       message: "Login successful",
@@ -211,7 +230,7 @@ const login = async (req, res, next) => {
           email: user.email,
           fullName: user.fullName,
           role: user.role,
-          lastLogin: user.lastLogin || "there is no last login",
+          lastLogin: lastLogin,
         },
         accessToken: tokens.accessToken,
       },
@@ -233,6 +252,55 @@ const login = async (req, res, next) => {
     return next(new AppError(500, "Failed to login"));
   }
 };
+
+// # LOGOUT
+const logout = async (req, res, next) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(204).json({ 
+        status: "success",
+        message: "No active session" 
+      });
+    }
+
+    // Invalidate session in database
+    const session = await Session.findOne({ where: { refreshToken, isActive: true } });
+    
+    if (session) {
+      await session.update({ 
+        isActive: false,
+        updatedAt: new Date()
+      });
+      logger.info("Session invalidated", { 
+        userId: session.userId,
+        sessionId: session.id
+      });
+    }
+
+    // Clear refresh token cookie
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+    });
+
+    return res.status(200).json({ 
+      status: "success",
+      message: "Logged out successfully" 
+    });
+  } catch (error) {
+    logger.error("Logout error", {
+      error: error.message,
+      stack: error.stack,
+    });
+    
+    return next(new AppError(500, "Failed to logout"));
+  }
+};
+
+// # VERIFY EMAIL
 
 const verifyEmail = async (req, res) => {
   const { token } = req.query;
@@ -311,6 +379,8 @@ const verifyEmail = async (req, res) => {
   }
 };
 
+// # RESENDVERIFICATIONEMAIL
+
 const resendVerificationEmail = async (req, res) => {
   const { email } = req.body;
 
@@ -379,66 +449,134 @@ const resendVerificationEmail = async (req, res) => {
   }
 };
 
+// # FORGOTPASSWORD
+
 const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
-  const userResponse = await axios.get(`/users/get-by-email?email=${email}`);
-
-  logger.info("Getting info", userResponse.data?.data);
-
-  if (!userResponse.data?.data) {
-    return res.status(404).json({
+  if (!email) {
+    return res.status(400).json({
       status: "error",
-      message: "User not found",
+      message: "Email is required",
     });
   }
 
-  const user = userResponse.data.data;
-  const secret = process.env.RESET_TOKEN_SECRET + user.password;
-  const token = jwt.sign({ id: user.id, email: user.email }, secret, {
-    expiresIn: "1h",
-  });
   try {
+    const userResponse = await axios.get(`/users/get-by-email?email=${email}`);
+
+    logger.info("Getting info", userResponse.data?.data);
+
+    if (!userResponse.data?.data) {
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    const user = userResponse.data.data;
+    const secret = process.env.RESET_TOKEN_SECRET + user.passwordHash;
+    const token = jwt.sign({ id: user.id, email: user.email }, secret, {
+      expiresIn: "1h",
+    });
+
     logger.info("data", {
       email: user.email,
       username: user.username,
       token: token,
     });
-    await sendResetPassword(user.email, user.username, token);
-    return res.status(200).json({ message: "Reset link sent" });
+
+    await sendResetPassword(user, token);
+    return res.status(200).json({
+      status: "success",
+      message: "Reset link sent",
+    });
   } catch (emailError) {
     logger.error("Failed to send reset password token", {
       error: emailError.message,
-      userId: user.id,
-      email: user.email,
+      userId: user?.id,
+      email: email,
     });
-    // Don't return error, just log it
+
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to send reset password email",
+      error: emailError.message,
+    });
   }
 };
 
+// # RESETPASSWORD
+
 const resetPassword = async (req, res) => {
-  const { id, token, password } = req.body;
+  const { id, token } = req.query;
+  const { password } = req.body;
 
-  const userResponse = await axios.get(`/users/${id}`);
-
-  logger.info("Getting info", userResponse.data?.data);
-
-  if (!userResponse.data?.data) {
-    return res.status(404).json({
+  if (!id || !token || !password) {
+    return res.status(400).json({
       status: "error",
-      message: "User not found",
+      message: "ID, token, and password are required",
     });
   }
 
-  const secret = process.env.RESET_TOKEN_SECRET + user.password;
   try {
-    jwt.verify(token, secret);
+    const userResponse = await axios.get(`/users/${id}`);
+
+    logger.info("Getting info", userResponse.data?.data);
+
+    if (!userResponse.data?.data) {
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    const user = userResponse.data.data;
+    const secret = process.env.RESET_TOKEN_SECRET + user.passwordHash;
+
+    try {
+      jwt.verify(token, secret);
+    } catch (jwtError) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid or expired token",
+      });
+    }
+
+    // Validate password
+    if (password.length < 8) {
+      return res.status(400).json({
+        status: "error",
+        message: "Password must be at least 8 characters long",
+      });
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Password must contain at least one special character",
+      });
+    }
+
     const hash = await bcrypt.hash(password, 10);
-    user.password = hash;
-    await user.save();
-    res.json({ message: "Password updated" });
-  } catch (err) {
-    res.status(400).json({ error: "Invalid or expired token" });
+
+    await axios.patch(`/users/${user.id}`, {
+      passwordHash: hash,
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Password updated successfully",
+    });
+  } catch (error) {
+    logger.error("Reset password error", {
+      error: error.message,
+      userId: id,
+    });
+
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to reset password",
+      error: error.message,
+    });
   }
 };
 
@@ -449,4 +587,5 @@ module.exports = {
   resendVerificationEmail,
   forgotPassword,
   resetPassword,
+  logout
 };
