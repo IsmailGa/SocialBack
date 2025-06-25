@@ -1,24 +1,19 @@
 "use strict";
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
-const db = require("../../models");
-const User = db.User;
+const axios = require("../api/axios.js");
+const { Session } = require("../../models/index.js");
 
-const generateTokens = async (userId) => {
+const generateTokens = async (user) => {
   try {
-    if (!userId) {
-      throw new Error("Invalid user ID");
-    }
-
-    const userCheck = await User.findByPk(userId);
-    if (!userCheck) {
-      return { success: false, message: "User not found" };
+    if (!user) {
+      throw new Error("Not provided data");
     }
 
     const payload = {
-      id: userCheck.id,
-      email: userCheck.email,
-      roleId: userCheck.roleId,
+      id: user.id,
+      email: user.email,
+      roleId: user.role,
     };
     console.log(payload);
     const accessSecret = process.env.ACCESS_TOKEN_SECRET;
@@ -91,14 +86,14 @@ const refreshAccessToken = async (req, res) => {
     }
 
     const decoded = jwt.verify(refreshToken, refreshSecret);
-    const userCheck = await User.findByPk(decoded.id);
-    if (!userCheck) {
+    const userCheck = await axios.get(`/api/v1/users/${decoded.id}`);
+    if (!userCheck || !userCheck.data) {
       throw new Error("User not found");
     }
 
     const accessSecret = process.env.ACCESS_TOKEN_SECRET;
     const newAccessToken = jwt.sign(
-      { id: decoded.id, email: decoded.email },
+      { id: decoded.id, email: decoded.email, roleId: decoded.roleId },
       accessSecret,
       {
         expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
@@ -162,20 +157,43 @@ const validateRefreshToken = async (req, res, next) => {
     }
 
     const refreshToken = cookies.refreshToken;
+    const refreshSecret = process.env.REFRESH_TOKEN_SECRET;
+    if (!refreshSecret) {
+      throw new Error("REFRESH_TOKEN_SECRET is not defined");
+    }
 
-    const user = await User.findOne({ where: { refreshToken } });
-    if (!user) {
+    // Verify the refresh token and extract the user ID
+    const decoded = jwt.verify(refreshToken, refreshSecret);
+    const userId = decoded.id;
+
+    // Check if the session exists and is active
+    const session = await Session.findOne({
+      where: { userId: userId, refreshToken, isActive: true },
+    });
+    if (!session) {
       return res.status(403).json({
         status: "error",
-        message: "Invalid refresh token",
+        message: "Invalid or revoked refresh token",
       });
     }
 
-    req.user = user;
+    // Attach the user ID to the request for the next middleware
+    req.userId = userId;
 
     next();
   } catch (error) {
     console.error("Error validating refresh token:", error.message);
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        status: "error",
+        message: "Refresh token has expired",
+      });
+    } else if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid refresh token",
+      });
+    }
     return res.status(500).json({
       status: "error",
       message: "Internal server error",

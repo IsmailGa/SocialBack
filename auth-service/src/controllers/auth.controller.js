@@ -1,82 +1,65 @@
-const { User, Role, Session, AccountStatus } = require("../models");
+const { Session } = require("../models");
 const bcrypt = require("bcrypt");
 const { generateTokens } = require("../utils/jwt/jwtGenerate");
-const { sendVerificationEmail } = require("../utils/nodemailer/nodemailer");
+const {
+  sendVerificationEmail,
+  sendResetPassword,
+} = require("../utils/nodemailer/nodemailer");
 const jwt = require("jsonwebtoken");
+const axios = require("../utils/api/axios");
+const { AppError } = require("../middleware/error.middleware");
+const logger = require("../utils/logger");
 
-const register = async (req, res) => {
+// # REGISTER
+const register = async (req, res, next) => {
   const {
     username,
     email,
     password,
     fullName = null,
-    roleName = "user", // Default role is 'user'
+    roleName = "user",
   } = req.body;
 
   // Validate required fields
   if (!username || !email || !password) {
-    return res.status(400).json({
-      status: "error",
-      message: "Required fields: username, email, password",
-    });
+    return next(
+      new AppError(400, "Required fields: username, email, password")
+    );
   }
 
-  email.trim().toLowerCase();
-
-  // Check for existing user
-  const existingUser = await User.findOne({ where: { email } });
-  if (existingUser) {
-    return res.status(409).json({
-      status: "error",
-      message: "User with this email already exists",
-    });
-  }
-
-  const existingUsername = await User.findOne({ where: { username } });
-  if (existingUsername) {
-    return res.status(409).json({
-      status: "error",
-      message: "Username already exists, please choose another one",
-    });
-  }
-
-  // Validate password length
-  if (password.length < 8 && RegExp(/^[a-zA-Z0-9]+$/).test(password)) {
-    return res.status(400).json({
-      status: "error",
-      message:
-        "Password must be at least 8 characters long and contain at least one special character",
-    });
-  }
-
-  // Validate role
-  const validRoles = ["admin", "moderator", "user"];
+  const normalizedEmail = email.trim().toLowerCase();
   const normalizedRoleName = roleName.trim().toLowerCase();
-  const role = await Role.findOne({ where: { name: normalizedRoleName } });
-  if (!role || !validRoles.includes(normalizedRoleName)) {
-    return res.status(400).json({
-      status: "error",
-      message: `Invalid role. Must be one of: ${validRoles.join(", ")}`,
-    });
-  }
 
   try {
+    // Check for existing user
+    const checkUserResponse = await axios.get(
+      `/users/check-email?email=${normalizedEmail}`
+    );
+
+    if (checkUserResponse.data?.data?.exists) {
+      return next(new AppError(409, "User with this email already exists"));
+    }
+
+    // Validate password length
+    if (password.length < 8) {
+      return next(
+        new AppError(400, "Password must be at least 8 characters long")
+      );
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return next(
+        new AppError(
+          400,
+          "Password must contain at least one special character"
+        )
+      );
+    }
+
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Find default account status
-    const accountStatus = await AccountStatus.findOne({
-      where: { name: "active" },
-    });
-    if (!accountStatus) {
-      return res.status(500).json({
-        status: "error",
-        message: 'Account status "active" not found',
-      });
-    }
-
     const verificationToken = jwt.sign(
-      { email, username },
+      { normalizedEmail, username },
       process.env.EMAIL_VERIFICATION_SECRET,
       { expiresIn: "1h" }
     );
@@ -84,13 +67,12 @@ const register = async (req, res) => {
     const verificationTokenExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
 
     // Create user
-    const newUser = await User.create({
-      username,
-      email,
-      passwordHash,
-      fullName,
-      accountStatusId: accountStatus.id,
-      roleId: role.id,
+    const createUserResponse = await axios.post(`/users`, {
+      username: username,
+      email: normalizedEmail,
+      password: passwordHash,
+      fullName: fullName,
+      roleName: normalizedRoleName,
       verificationToken: verificationToken,
       verificationTokenExpires: verificationTokenExpires,
       isEmailVerified: false,
@@ -98,98 +80,147 @@ const register = async (req, res) => {
       isDeleted: false,
     });
 
-    await sendVerificationEmail(
-      newUser.email,
-      newUser.username,
-      newUser.verificationToken
-    );
+    if (!createUserResponse.data?.data) {
+      logger.error("Failed to create user in user service", {
+        response: createUserResponse.data,
+        username,
+        email: normalizedEmail,
+      });
+      return next(new AppError(500, "Failed to create user in user service"));
+    }
 
-    // Create session with refresh token
+    const userData = createUserResponse.data.data;
+
+    // Send verification email
+    try {
+      await sendVerificationEmail(
+        userData.email,
+        userData.username,
+        verificationToken
+      );
+    } catch (emailError) {
+      logger.error("Failed to send verification email", {
+        error: emailError.message,
+        userId: userData.id,
+        email: userData.email,
+      });
+      // Don't return error, just log it
+    }
+
     return res.status(201).json({
       status: "success",
       message: "User registered successfully",
       data: {
-        id: newUser.id,
-        username: newUser.username,
-        email: newUser.email,
-        fullName: newUser.fullName,
-        role: role.name,
-        createdAt: newUser.createdAt,
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        fullName: userData.fullName,
+        role: userData.role,
+        createdAt: userData.createdAt,
       },
     });
   } catch (error) {
-    console.error("Failed to create user:", error);
-    return res.status(500).json({
-      status: "error",
-      message: "Failed to create user",
+    logger.error("Registration error", {
       error: error.message,
+      username,
+      email: normalizedEmail,
+      roleName: normalizedRoleName,
     });
+
+    if (error.response?.data) {
+      const statusCode = error.response.status || 500;
+      const message = error.response.data.message || "Failed to register user";
+      return next(new AppError(statusCode, message));
+    }
+
+    return next(new AppError(500, "Failed to register user"));
   }
 };
 
-const login = async (req, res) => {
-  const { email, password } = req.body;
+// # LOGIN
+const login = async (req, res, next) => {
+  const { email, password, lastLogin = new Date().toISOString() } = req.body;
+  const deviceInfo = req.headers["user-agent"] || "Unknown";
+  const ipAddress = req.ip || "Unknown";
 
-  // Validate required fields
   if (!email || !password) {
-    return res.status(400).json({
-      status: "error",
-      message: "Required fields: email, password",
+    logger.warn("Login attempt with missing credentials", {
+      hasEmail: !!email,
+      hasPassword: !!password,
     });
+    return next(new AppError(400, "Required fields: email, password"));
   }
 
-  email.trim().toLowerCase();
+  const normalizedEmail = email.trim().toLowerCase();
+  logger.info("Attempting to login user", { email: normalizedEmail });
 
   try {
-    // Find user by email
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-      return res.status(401).json({
-        status: "error",
-        message: "Invalid email or password",
-      });
+    // 1. Find user by email
+    const userResponse = await axios.get(
+      `/users/get-by-email?email=${normalizedEmail}`
+    );
+
+    if (!userResponse.data?.data) {
+      logger.warn("User not found during login", { email: normalizedEmail });
+      return next(new AppError(401, "Invalid email or password"));
     }
 
-    const userRole = await Role.findByPk(user.roleId);
-    if (!userRole) {
-      return res.status(500).json({
-        status: "error",
-        message: "User role not found",
+    const user = userResponse.data.data;
+
+    // 2. Check password
+    if (!user.passwordHash) {
+      logger.warn("No password hash found for user", {
+        email: normalizedEmail,
       });
+      return next(new AppError(401, "Invalid email or password"));
     }
 
-    // Check password
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
-      return res.status(401).json({
-        status: "error",
-        message: "Invalid email or password",
-      });
-    }
-  
-    // Generate tokens
-    const tokens = await generateTokens(user.id);
-    if (!tokens.success) {
-      return res.status(500).json({
-        status: "error",
-        message: "Failed to generate tokens",
-      });
+      logger.warn("Invalid password", { email: normalizedEmail });
+      return next(new AppError(401, "Invalid email or password"));
     }
 
-    res.cookie("refreshToken", tokens.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Use secure cookies in production
-      sameSite: "Strict", // Adjust as needed
+    // 3. Generate tokens
+    const tokens = await generateTokens({
+      email: user.email,
+      roleName: user.role,
+      id: user.id,
     });
+    if (!tokens.success) {
+      logger.error("Failed to generate tokens", {
+        userId: user.id,
+        error: tokens.message,
+      });
+      return next(new AppError(500, "Failed to generate tokens"));
+    }
 
-    const refreshExpiresAt = new Date(Date.now() + parseInt(process.env.REFRESH_TOKEN_EXPIRY) * 1000);
+    // 4. Calculate refresh token expiration (assuming 7 days from jwtGenerate)
+    const refreshExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    Session.create({
+    // 5. Store session in database
+    await Session.create({
       userId: user.id,
       refreshToken: tokens.refreshToken,
-      refreshExpiresAt: refreshExpiresAt,
+      refreshExpiresAt,
+      deviceInfo,
+      ipAddress,
+      isActive: true,
     });
 
+    // 6. Set refresh token cookie
+    res.cookie("refreshToken", tokens.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // 7. Update last login
+    logger.info("Attempting to update lastLogin");
+    await axios.patch(`/users/${user.id}`, { lastLogin: lastLogin });
+
+    // 8. Return user info and access token
     return res.status(200).json({
       status: "success",
       message: "Login successful",
@@ -198,51 +229,78 @@ const login = async (req, res) => {
           id: user.id,
           email: user.email,
           fullName: user.fullName,
-          role: {
-            id: userRole.id,
-            name: userRole.name,
-          },
+          role: user.role,
+          lastLogin: lastLogin,
         },
         accessToken: tokens.accessToken,
       },
     });
   } catch (error) {
-    console.error("Error logging in:", error.message);
-    return res.status(500).json({
-      status: "error",
-      message: "Internal server error",
+    logger.error("Login error", {
+      error: error.message,
+      stack: error.stack,
+      email: normalizedEmail,
+      response: error.response?.data,
     });
+
+    if (error.response?.data) {
+      const statusCode = error.response.status || 500;
+      const message = error.response.data.message || "Failed to login";
+      return next(new AppError(statusCode, message));
+    }
+
+    return next(new AppError(500, "Failed to login"));
   }
 };
 
-const logout = async (req, res) => {
+// # LOGOUT
+const logout = async (req, res, next) => {
   try {
     const refreshToken = req.cookies?.refreshToken;
+
     if (!refreshToken) {
-      return res.status(204).send({
+      return res.status(204).json({ 
         status: "success",
-        message: "No content to delete",
-      }); // No content to delete
+        message: "No active session" 
+      });
     }
 
-    // Clear the cookie
+    // Invalidate session in database
+    const session = await Session.findOne({ where: { refreshToken, isActive: true } });
+    
+    if (session) {
+      await session.update({ 
+        isActive: false,
+        updatedAt: new Date()
+      });
+      logger.info("Session invalidated", { 
+        userId: session.userId,
+        sessionId: session.id
+      });
+    }
+
+    // Clear refresh token cookie
     res.clearCookie("refreshToken", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "Strict",
     });
 
-    // Optionally, you can also invalidate the token in your database if needed
-
-    return res.status(204).send(); // Successfully logged out
-  } catch (error) {
-    console.error("Error logging out:", error.message);
-    return res.status(500).json({
-      status: "error",
-      message: "Internal server error",
+    return res.status(200).json({ 
+      status: "success",
+      message: "Logged out successfully" 
     });
+  } catch (error) {
+    logger.error("Logout error", {
+      error: error.message,
+      stack: error.stack,
+    });
+    
+    return next(new AppError(500, "Failed to logout"));
   }
-}
+};
+
+// # VERIFY EMAIL
 
 const verifyEmail = async (req, res) => {
   const { token } = req.query;
@@ -255,21 +313,35 @@ const verifyEmail = async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({
-      where: {
-        verificationToken: token,
-        verificationTokenExpires: { [require("sequelize").Op.gt]: new Date() },
-      },
-    });
+    // Verify token
+    const decoded = jwt.verify(token, process.env.EMAIL_VERIFICATION_SECRET);
+    const { email } = decoded;
 
-    if (!user) {
+    // Get user by email
+    const userResponse = await axios.get(`/users/get-by-email?email=${email}`);
+
+    if (!userResponse.data?.data) {
       return res.status(400).json({
         status: "error",
         message: "Invalid or expired verification token",
       });
     }
 
-    await user.update({
+    const user = userResponse.data.data;
+
+    // Check if token is expired
+    if (
+      user.verificationTokenExpires &&
+      new Date() > new Date(user.verificationTokenExpires)
+    ) {
+      return res.status(400).json({
+        status: "error",
+        message: "Verification token has expired",
+      });
+    }
+
+    // Update user verification status
+    await axios.patch(`/users/${user.id}`, {
       isEmailVerified: true,
       verificationToken: null,
       verificationTokenExpires: null,
@@ -280,10 +352,229 @@ const verifyEmail = async (req, res) => {
       message: "Email verified successfully",
     });
   } catch (error) {
-    console.error("Failed to verify email:", error);
+    logger.error("Failed to verify email:", {
+      error: error.message,
+      token: token,
+    });
+
+    if (error.name === "TokenExpiredError") {
+      return res.status(400).json({
+        status: "error",
+        message: "Verification token has expired",
+      });
+    }
+
+    if (error.name === "JsonWebTokenError") {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid verification token",
+      });
+    }
+
     return res.status(500).json({
       status: "error",
       message: "Failed to verify email",
+      error: error.message,
+    });
+  }
+};
+
+// # RESENDVERIFICATIONEMAIL
+
+const resendVerificationEmail = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({
+      status: "error",
+      message: "Email is required",
+    });
+  }
+
+  try {
+    // Get user by email
+    const userResponse = await axios.get(`/users/get-by-email?email=${email}`);
+
+    logger.info("Getting info", userResponse.data?.data);
+
+    if (!userResponse.data?.data) {
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    const user = userResponse.data.data;
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({
+        status: "error",
+        message: "Email is already verified",
+      });
+    }
+
+    // Generate new verification token
+    const verificationToken = jwt.sign(
+      { email: user.email, username: user.username },
+      process.env.EMAIL_VERIFICATION_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    const verificationTokenExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    // Update user with new token
+    await axios.patch(`/users/${user.id}`, {
+      verificationToken,
+      verificationTokenExpires,
+    });
+
+    // Send new verification email
+    await sendVerificationEmail(user.email, user.username, verificationToken);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Verification email sent successfully",
+    });
+  } catch (error) {
+    logger.error("Failed to resend verification email:", {
+      error: error.message,
+      email: email,
+    });
+
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to resend verification email",
+      error: error.message,
+    });
+  }
+};
+
+// # FORGOTPASSWORD
+
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({
+      status: "error",
+      message: "Email is required",
+    });
+  }
+
+  try {
+    const userResponse = await axios.get(`/users/get-by-email?email=${email}`);
+
+    logger.info("Getting info", userResponse.data?.data);
+
+    if (!userResponse.data?.data) {
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    const user = userResponse.data.data;
+    const secret = process.env.RESET_TOKEN_SECRET + user.passwordHash;
+    const token = jwt.sign({ id: user.id, email: user.email }, secret, {
+      expiresIn: "1h",
+    });
+
+    logger.info("data", {
+      email: user.email,
+      username: user.username,
+      token: token,
+    });
+
+    await sendResetPassword(user, token);
+    return res.status(200).json({
+      status: "success",
+      message: "Reset link sent",
+    });
+  } catch (emailError) {
+    logger.error("Failed to send reset password token", {
+      error: emailError.message,
+      userId: user?.id,
+      email: email,
+    });
+
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to send reset password email",
+      error: emailError.message,
+    });
+  }
+};
+
+// # RESETPASSWORD
+
+const resetPassword = async (req, res) => {
+  const { id, token } = req.query;
+  const { password } = req.body;
+
+  if (!id || !token || !password) {
+    return res.status(400).json({
+      status: "error",
+      message: "ID, token, and password are required",
+    });
+  }
+
+  try {
+    const userResponse = await axios.get(`/users/${id}`);
+
+    logger.info("Getting info", userResponse.data?.data);
+
+    if (!userResponse.data?.data) {
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
+    }
+
+    const user = userResponse.data.data;
+    const secret = process.env.RESET_TOKEN_SECRET + user.passwordHash;
+
+    try {
+      jwt.verify(token, secret);
+    } catch (jwtError) {
+      return res.status(400).json({
+        status: "error",
+        message: "Invalid or expired token",
+      });
+    }
+
+    // Validate password
+    if (password.length < 8) {
+      return res.status(400).json({
+        status: "error",
+        message: "Password must be at least 8 characters long",
+      });
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return res.status(400).json({
+        status: "error",
+        message: "Password must contain at least one special character",
+      });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+
+    await axios.patch(`/users/${user.id}`, {
+      passwordHash: hash,
+    });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Password updated successfully",
+    });
+  } catch (error) {
+    logger.error("Reset password error", {
+      error: error.message,
+      userId: id,
+    });
+
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to reset password",
       error: error.message,
     });
   }
@@ -293,5 +584,8 @@ module.exports = {
   register,
   login,
   verifyEmail,
+  resendVerificationEmail,
+  forgotPassword,
+  resetPassword,
   logout
 };
