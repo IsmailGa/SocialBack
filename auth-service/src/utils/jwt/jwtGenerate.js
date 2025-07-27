@@ -3,6 +3,7 @@ require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const axios = require("../api/axios.js");
 const { Session } = require("../../models/index.js");
+const logger = require("../logger.js");
 
 const generateTokens = async (user) => {
   try {

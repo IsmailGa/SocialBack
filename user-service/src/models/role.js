@@ -6,7 +6,7 @@ module.exports = (sequelize) => {
       primaryKey: true,
       autoIncrement: true,
     },
-    name: {
+    role: {
       type: DataTypes.STRING(50),
       allowNull: false,
       unique: true,

@@ -1,28 +1,32 @@
-'use strict';
+"use strict";
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.bulkInsert('AccountStatuses', [
-      {
-        name: 'active',
-        createdAt: new Date(),
-      },
-      {
-        name: 'inactive',
-        createdAt: new Date(),
-      },
-      {
-        name: 'suspended',
-        createdAt: new Date(),
-      },
-      {
-        name: 'banned',
-        createdAt: new Date(),
-      }
-    ], {});
+    await queryInterface.bulkInsert(
+      "AccountStatuses",
+      [
+        {
+          status: "active",
+          createdAt: new Date(),
+        },
+        {
+          status: "inactive",
+          createdAt: new Date(),
+        },
+        {
+          status: "suspended",
+          createdAt: new Date(),
+        },
+        {
+          status: "banned",
+          createdAt: new Date(),
+        },
+      ],
+      {}
+    );
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.bulkDelete('AccountStatuses', null, {});
-  }
-}; 
+    await queryInterface.bulkDelete("AccountStatuses", null, {});
+  },
+};
