@@ -59,7 +59,7 @@
 <body class="bg-gray-100">
     <div class="container mx-auto p-6 max-w-7xl">
         <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">Улучшенная ER-диаграмма для социальной сети</h1>
-        <p class="text-gray-600 mb-8">Данный документ описывает улучшенную структуру базы данных для социальной сети, включающую поддержку профилей пользователей, постов, комментариев, лайков, сообщений, групповых чатов, подписок, блокировок, уведомлений, хэштегов, аналитики просмотров, сессий, ролей и логов действий. Перечислимые значения вынесены в отдельные таблицы с INTEGER ключами. Поле data в Notifications заменено на message (TEXT). Добавлены таблицы для типов медиа, деталей уведомлений, ролей и логов действий с отдельной таблицей для действий.</p>
+        <p class="text-gray-600 mb-8">Данный документ описывает улучшенную структуру базы данных для социальной сети, включающую поддержку профилей пользователей, постов, комментариев, лайков, сообщений, групповых чатов, подписок, блокировок, уведомлений, хэштегов, аналитики просмотров, сессий, ролей и логов действий. Поля <code>verification_token</code>, <code>reset_password_token</code> и <code>reset_password_expires</code> вынесены в отдельную таблицу <code>AuthTokens</code> для изоляции процессов аутентификации. Добавлена таблица <code>TokenTypes</code> для типов токенов. Поле <code>data</code> в <code>Notifications</code> заменено на <code>message</code> (TEXT). Перечислимые значения вынесены в отдельные таблицы с INTEGER ключами.</p>
 
         <section class="mb-8">
             <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица Users</h2>
@@ -80,10 +80,7 @@
                     <tr><td data-label="Поле">full_name</td><td data-label="Тип данных">VARCHAR(100)</td><td data-label="Описание">Полное имя</td></tr>
                     <tr><td data-label="Поле">avatar_url</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">URL аватара</td></tr>
                     <tr><td data-label="Поле">bio</td><td data-label="Тип данных">TEXT</td><td data-label="Описание">Биография</td></tr>
-                    <tr><td data-label="Поле">is_email_verified</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Подтвержден ли email</td></tr>
-                    <tr><td data-label="Поле">verification_token</td><td data-label="Тип данных">VARCHAR(255)</td><td data-label="Описание">Токен для подтверждения email</td></tr>
-                    <tr><td data-label="Поле">reset_password_token</td><td data-label="Тип данных">VARCHAR(255)</td><td data-label="Описание">Токен для сброса пароля</td></tr>
-                    <tr><td data-label="Поле">reset_password_expires</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Срок действия токена сброса пароля</td></tr>
+                    <tr><td data-label="Поле">is_email_verified</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Подтверждён ли email</td></tr>
                     <tr><td data-label="Поле">account_status_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Статус аккаунта (AccountStatuses.id)</td></tr>
                     <tr><td data-label="Поле">role_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Роль пользователя (Roles.id)</td></tr>
                     <tr><td data-label="Поле">is_private</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Приватный профиль (true/false)</td></tr>
@@ -91,6 +88,48 @@
                     <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
                     <tr><td data-label="Поле">updated_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата последнего обновления</td></tr>
                     <tr><td data-label="Поле">is_deleted</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Мягкое удаление</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица AuthTokens</h2>
+            <p class="text-gray-600 mb-2">Индексы: UNIQUE (token), INDEX (user_id, token_type_id, expires_at)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">UUID (PK)</td><td data-label="Описание">Уникальный идентификатор токена</td></tr>
+                    <tr><td data-label="Поле">user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Пользователь (Users.id)</td></tr>
+                    <tr><td data-label="Поле">token_type_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Тип токена (TokenTypes.id)</td></tr>
+                    <tr><td data-label="Поле">token</td><td data-label="Тип данных">VARCHAR(255)</td><td data-label="Описание">Значение токена</td></tr>
+                    <tr><td data-label="Поле">expires_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Срок действия токена (nullable)</td></tr>
+                    <tr><td data-label="Поле">is_used</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Использован ли токен (true/false)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица TokenTypes</h2>
+            <p class="text-gray-600 mb-2">Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID типа токена</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(50)</td><td data-label="Описание">Название типа (email_verification, reset_password)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
                 </tbody>
             </table>
         </section>
@@ -362,8 +401,27 @@
                 <tbody>
                     <tr><td data-label="Поле">follower_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">Подписчик (Users.id)</td></tr>
                     <tr><td data-label="Поле">followee_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">На кого подписан (Users.id)</td></tr>
-                    <tr><td data-label="Поле">is_pending</td><td data-label="Тип данных">BOOLEAN</td><td data-label="Описание">Запрос на подписку (для приватных аккаунтов)</td></tr>
+                    <tr><td data-label="Поле">follow_status_id</td><td data-label="Тип данных">INTEGER (FK)</td><td data-label="Описание">Запрос на подписку (pending, approved, rejected)</td></tr>
                     <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Когда произошла подписка</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4">Таблица FollowStatus</h2>
+            <p class="text-gray-600 mb-2">Индексы: UNIQUE (name)</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Поле</th>
+                        <th>Тип данных</th>
+                        <th>Описание</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td data-label="Поле">id</td><td data-label="Тип данных">INTEGER (PK)</td><td data-label="Описание">ID статуса подписки</td></tr>
+                    <tr><td data-label="Поле">name</td><td data-label="Тип данных">VARCHAR(20)</td><td data-label="Описание">Название статуса (pending, approved, rejected)</td></tr>
+                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата создания</td></tr>
                 </tbody>
             </table>
         </section>
@@ -534,18 +592,4 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Поле</th>
-                        <th>Тип данных</th>
-                        <th>Описание</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td data-label="Поле">post_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID поста (Posts.id)</td></tr>
-                    <tr><td data-label="Поле">user_id</td><td data-label="Тип данных">UUID (FK)</td><td data-label="Описание">ID пользователя (Users.id, nullable для гостей)</td></tr>
-                    <tr><td data-label="Поле">created_at</td><td data-label="Тип данных">TIMESTAMP</td><td data-label="Описание">Дата просмотра</td></tr>
-                </tbody>
-            </table>
-        </section>
-    </div>
-</body>
-</html>
+                        <th>Поле</th>:

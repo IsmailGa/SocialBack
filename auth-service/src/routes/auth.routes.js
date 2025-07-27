@@ -28,16 +28,16 @@ router.post("/register", authLimiter, register);
 router.post("/login", authLimiter, login);
 router.post("/logout", logoutLimiter, validateRefreshToken, logout);
 router.get("/verify-email", emailLimiter, verifyEmail);
-router.get("/reset-password", passwordLimiter, resetPassword);
-router.get("/forgot-password", passwordLimiter, forgotPassword);
+router.post("/reset-password", passwordLimiter, resetPassword);
+router.post("/forgot-password", passwordLimiter, forgotPassword);
 router.post("/resend-verification", emailLimiter, resendVerificationEmail);
-router.get(
+router.post("/validate-token", tokenLimiter, validateToken);
+router.post(
   "/refresh-token",
   tokenLimiter,
   validateRefreshToken,
   refreshAccessToken
 );
-router.get("/validate-token", tokenLimiter, validateToken);
 
 router.use(errorHandler);
 

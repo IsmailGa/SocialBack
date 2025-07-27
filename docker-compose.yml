@@ -36,7 +36,19 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - JWT_SECRET=your_jwt_secret
+      - ACCESS_TOKEN_SECRET=your_access_token_secret
+      - REFRESH_TOKEN_SECRET=your_refresh_token_secret
+      - ACCESS_TOKEN_EXPIRY=15m
+      - REFRESH_TOKEN_EXPIRY=7d
+      - EMAIL_VERIFICATION_SECRET=your_email_verification_secret
+      - RESET_TOKEN_SECRET=your_reset_token_secret
       - FRONTEND_URL=http://localhost:3000
+      - INTER_SERVICE_API_KEY=socialka-inter-service-key-2024
+      - USER_SERVICE_URL=http://user-service:3002
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=587
+      - EMAIL_USER=your-email@gmail.com
+      - EMAIL_PASS=your-app-password
     depends_on:
       - postgres
 
@@ -52,6 +64,7 @@ services:
       - DB_NAME=user_db
       - DB_USER=postgres
       - DB_PASSWORD=postgres
+      - INTER_SERVICE_API_KEY=socialka-inter-service-key-2024
     depends_on:
       - postgres
 

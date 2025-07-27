@@ -39,24 +39,24 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: false,
       },
-      verificationToken: {
-        // This token is used for email verification
-        type: DataTypes.STRING(255),
-        allowNull: true,
-      },
-      verificationTokenExpires: {
-        // This timestamp indicates when the verification token expires
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
-      resetPasswordToken: {
-        type: DataTypes.STRING(255),
-        allowNull: true,
-      },
-      resetPasswordExpires: {
-        type: DataTypes.DATE,
-        allowNull: true,
-      },
+      // verificationToken: {
+      //   // This token is used for email verification
+      //   type: DataTypes.STRING(255),
+      //   allowNull: true,
+      // },
+      // verificationTokenExpires: {
+      //   // This timestamp indicates when the verification token expires
+      //   type: DataTypes.DATE,
+      //   allowNull: true,
+      // },
+      // resetPasswordToken: {
+      //   type: DataTypes.STRING(255),
+      //   allowNull: true,
+      // },
+      // resetPasswordExpires: {
+      //   type: DataTypes.DATE,
+      //   allowNull: true,
+      // },
       accountStatusId: {
         type: DataTypes.INTEGER,
         allowNull: false,

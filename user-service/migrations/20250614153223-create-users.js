@@ -39,24 +39,24 @@ module.exports = {
         allowNull: false,
         defaultValue: false,
       },
-      verificationToken: {
-        // This token is used for email verification
-        type: Sequelize.STRING(255),
-        allowNull: true,
-      },
-      verificationTokenExpires: {
-        // This timestamp indicates when the verification token expires
-        type: Sequelize.DATE,
-        allowNull: true,
-      },
-      resetPasswordToken: {
-        type: Sequelize.STRING(255),
-        allowNull: true,
-      },
-      resetPasswordExpires: {
-        type: Sequelize.DATE,
-        allowNull: true,
-      },
+      // verificationToken: {
+      //   // This token is used for email verification
+      //   type: Sequelize.STRING(255),
+      //   allowNull: true,
+      // },
+      // verificationTokenExpires: {
+      //   // This timestamp indicates when the verification token expires
+      //   type: Sequelize.DATE,
+      //   allowNull: true,
+      // },
+      // resetPasswordToken: {
+      //   type: Sequelize.STRING(255),
+      //   allowNull: true,
+      // },
+      // resetPasswordExpires: {
+      //   type: Sequelize.DATE,
+      //   allowNull: true,
+      // },
       accountStatusId: {
         type: Sequelize.INTEGER,
         allowNull: false,
